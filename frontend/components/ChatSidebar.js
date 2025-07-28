@@ -12,14 +12,23 @@ export default function ChatSidebar({ setCode }) {
   const currentSession = useStore((s) => s.currentSession);
 
   const handleSend = async () => {
-    if (!prompt.trim() || !currentSession?._id) return;
+    if (!prompt.trim()) return;
+    if (!currentSession?._id) {
+      alert('Please create or select a session first.');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please login to continue.');
+      return;
+    }
 
     const newMessages = [...chatHistory, { from: 'user', text: prompt }];
     setChatHistory(newMessages);
     setPrompt('');
 
     try {
-      const token = localStorage.getItem('token');
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE}/api/chat/prompt`,
         {
@@ -37,7 +46,8 @@ export default function ChatSidebar({ setCode }) {
         { from: 'ai', text: '✅ Component generated!' },
       ]);
       setCode({ jsx, css });
-    } catch {
+    } catch (err) {
+      console.error('❌ AI request failed:', err.response?.data || err.message);
       setChatHistory([
         ...newMessages,
         { from: 'ai', text: '❌ Error generating component.' },
