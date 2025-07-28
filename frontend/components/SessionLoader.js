@@ -1,32 +1,38 @@
-// Placeholder for frontend/components/SessionLoader.js
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import useStore from '../state/store';
 
-export default function SessionLoader({ onSelect }) {
+export default function SessionLoader() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const setCode = useStore((state) => state.setCode);
+  const setChatHistory = useStore((state) => state.setChatHistory);
+  const setCurrentSession = useStore((state) => state.setCurrentSession);
+
   useEffect(() => {
-  const fetchSessions = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/session', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+    const fetchSessions = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_BASE}/api/session`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
-      console.log('Fetched sessions:', res.data); // 👈 debug
-      setSessions(res.data); // expecting this to be an array
-    } catch (err) {
-      console.error('Session load error:', err.response?.data || err.message);
-      setSessions([]); // fallback to empty array
-    } finally {
-      setLoading(false);
-    }
-  };
+        console.log('Fetched sessions:', res.data);
+        setSessions(res.data);
+      } catch (err) {
+        console.error('Session load error:', err.response?.data || err.message);
+        setSessions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchSessions();
-}, []);
-
+    fetchSessions();
+  }, []);
 
   const handleNewSession = async () => {
     try {
@@ -38,9 +44,30 @@ export default function SessionLoader({ onSelect }) {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      onSelect(res.data); // pass new session data to parent
+
+      // Immediately select new session
+      await handleSelectSession(res.data);
     } catch (err) {
       alert('Could not create session');
+    }
+  };
+
+  const handleSelectSession = async (session) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/session/${session._id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const { jsx, css, messages } = res.data;
+      setCode({ jsx, css });
+      setChatHistory(messages || []);
+      setCurrentSession(session);
+    } catch (err) {
+      alert('Failed to load session');
     }
   };
 
@@ -64,7 +91,7 @@ export default function SessionLoader({ onSelect }) {
           {sessions.map((session) => (
             <li key={session._id}>
               <button
-                onClick={() => onSelect(session)}
+                onClick={() => handleSelectSession(session)}
                 className="text-left w-full px-2 py-1 border rounded hover:bg-gray-100 text-sm"
               >
                 {session.name || `Session ${session._id.slice(-4)}`}

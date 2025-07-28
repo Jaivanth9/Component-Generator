@@ -1,46 +1,60 @@
+// frontend/components/ChatSidebar.js
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import useStore from '../state/store';
 
 export default function ChatSidebar({ setCode }) {
   const [prompt, setPrompt] = useState('');
-  const [messages, setMessages] = useState([]);
   const bottomRef = useRef(null);
 
-  const handleSend = async () => {
-    if (!prompt.trim()) return;
+  const chatHistory = useStore((s) => s.chatHistory);
+  const setChatHistory = useStore((s) => s.setChatHistory);
+  const currentSession = useStore((s) => s.currentSession);
 
-    const newMessages = [...messages, { from: 'user', text: prompt }];
-    setMessages(newMessages);
+  const handleSend = async () => {
+    if (!prompt.trim() || !currentSession?._id) return;
+
+    const newMessages = [...chatHistory, { from: 'user', text: prompt }];
+    setChatHistory(newMessages);
     setPrompt('');
 
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE}/api/chat/prompt`,
-        { prompt },
+        {
+          prompt,
+          sessionId: currentSession._id,
+        },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
       const { jsx, css } = res.data;
-      setMessages([...newMessages, { from: 'ai', text: '✅ Component generated!' }]);
+      setChatHistory([
+        ...newMessages,
+        { from: 'ai', text: '✅ Component generated!' },
+      ]);
       setCode({ jsx, css });
-    } catch (err) {
-      setMessages([...newMessages, { from: 'ai', text: '❌ Error generating component.' }]);
+    } catch {
+      setChatHistory([
+        ...newMessages,
+        { from: 'ai', text: '❌ Error generating component.' },
+      ]);
     }
   };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [chatHistory]);
 
   return (
     <div className="flex flex-col h-full">
       <h2 className="text-lg font-semibold mb-2">AI Chat</h2>
 
       <div className="flex-1 overflow-y-auto border rounded bg-gray-50 p-3 space-y-3">
-        {messages.map((msg, i) => (
+        {chatHistory.map((msg, i) => (
           <div
             key={i}
             className={`max-w-[80%] p-2 rounded text-sm ${
