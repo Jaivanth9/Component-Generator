@@ -5,5 +5,6 @@ const authMiddleware = require('../middlewares/authMiddleware');
 
 router.get('/', authMiddleware, getSessions);         // ✅ Protected
 router.post('/create', authMiddleware, createSession);
+router.get('/:id', requireLogin, getSessionById);
 
 module.exports = router;
