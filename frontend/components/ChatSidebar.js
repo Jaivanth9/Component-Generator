@@ -16,7 +16,7 @@ export default function ChatSidebar({ setCode }) {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
-        'http://localhost:5000/api/chat/prompt',
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/chat/prompt`,
         { prompt },
         {
           headers: { Authorization: `Bearer ${token}` },

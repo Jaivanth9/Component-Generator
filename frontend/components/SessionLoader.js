@@ -31,9 +31,13 @@ export default function SessionLoader({ onSelect }) {
   const handleNewSession = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/session/create', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/session/create`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       onSelect(res.data); // pass new session data to parent
     } catch (err) {
       alert('Could not create session');
